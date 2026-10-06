@@ -1,0 +1,126 @@
+name: Auto Beta Build & Pre-release
+
+on:
+  schedule:
+    - cron: '0 18 * * *'   # UTC 18:00 = 北京时间次日 02:00，每天检测一次新提交
+  workflow_dispatch:      # 支持手动触发
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-beta
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 计算版本号
+        id: version
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          # 主/次版本号由正式 Release 决定，beta 在此基础上递增补丁号：
+          # v1.0.0 → v1.0.1-beta → v1.0.2-beta → ...
+          NUM=$(echo "$LAST_TAG" | sed 's/^v//' | sed 's/-beta.*//')
+          MAJOR=$(echo "$NUM" | cut -d. -f1)
+          MINOR=$(echo "$NUM" | cut -d. -f2)
+          PATCH=$(echo "$NUM" | cut -d. -f3)
+          if [ -z "$PATCH" ]; then
+            NEW_TAG="v$MAJOR.$MINOR.1-beta"
+          else
+            PATCH=$((PATCH+1))
+            NEW_TAG="v$MAJOR.$MINOR.$PATCH-beta"
+          fi
+          echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+          echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: 提取提交记录
+        id: commits
+        run: |
+          # 只统计影响模组本体的提交；workflow、说明文档等仓库维护类改动不触发 beta
+          EXCLUDES="-- . ':(exclude).github/**' ':(exclude).gitignore' ':(exclude).gitattributes' ':(exclude)README.md' ':(exclude)LICENSE'"
+          # 更新说明只取上一个标签（含 beta）之后的新提交，避免每个 beta 重复列出旧提交
+          LAST_TAG="${{ steps.version.outputs.last_tag }}"
+          if [ "$LAST_TAG" = "v0.0.0" ]; then
+            eval git log --format=%s $EXCLUDES > commits.txt
+          else
+            eval git log "$LAST_TAG"..HEAD --format=%s $EXCLUDES > commits.txt
+          fi
+          COUNT=$(wc -l < commits.txt | tr -d ' ')
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: 生成更新说明
+        id: notes
+        if: steps.commits.outputs.count > 0
+        run: |
+          python3 << 'EOF'
+          import re
+          with open("commits.txt", encoding="utf-8") as f:
+              commits = [line.strip() for line in f if line.strip()]
+
+          # 按 Conventional Commits 前缀分组；无前缀（含普通中文提交）归入"其他"
+          sections = {"feat": [], "fix": [], "docs": [], "other": []}
+          for c in commits:
+              m = re.match(r"^(feat|fix|docs)(\(.*?\))?:?\s*(.*)", c)
+              if m:
+                  text = m.group(3) or c
+                  sections[m.group(1)].append(f"- {text}")
+              else:
+                  sections["other"].append(f"- {c}")
+
+          lines = [f"## 更新说明（共 {len(commits)} 条提交）", ""]
+
+          def add(title, items):
+              if items:
+                  lines.append(f"### {title}")
+                  lines.extend(items)
+                  lines.append("")
+
+          add("新增", sections["feat"])
+          add("修复", sections["fix"])
+          add("更新", sections["docs"])
+          add("其他", sections["other"])
+          lines.append("---")
+          lines.append("> 本更新说明由自动工作流根据提交记录生成")
+          with open("release_body.md", "w", encoding="utf-8") as f:
+              f.write("\n".join(lines))
+          EOF
+
+      - name: 设置 JDK 21
+        if: steps.commits.outputs.count > 0
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: 授予 Gradle 执行权限
+        if: steps.commits.outputs.count > 0
+        run: chmod +x gradlew
+
+      - name: 构建模组
+        if: steps.commits.outputs.count > 0
+        run: ./gradlew build --no-daemon
+
+      - name: 重命名构建产物
+        if: steps.commits.outputs.count > 0
+        run: |
+          JAR=$(ls build/libs/*.jar | grep -v sources | head -n 1)
+          mv "$JAR" "simply_swords_overhaul-${{ steps.version.outputs.new_tag }}.jar"
+
+      - name: 创建 Beta Pre-release
+        if: steps.commits.outputs.count > 0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.new_tag }}" \
+            "simply_swords_overhaul-${{ steps.version.outputs.new_tag }}.jar" \
+            --title "简易刀剑：全面改造 ${{ steps.version.outputs.new_tag }} 测试版" \
+            --notes-file release_body.md \
+            --prerelease
