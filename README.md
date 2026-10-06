@@ -61,5 +61,3 @@ gradlew.bat build
 ## 许可证
 
 本项目代码使用 MIT License，详见 [`LICENSE`](LICENSE)。
-
-工程模板结构源自 [NeoForged MDK](https://github.com/NeoForged/MDK)，其上游许可证见 `TEMPLATE_LICENSE.txt`。
