@@ -1,0 +1,4 @@
+# 文本文件统一使用 LF 换行符，避免 Git 因仅换行符变化而报告修改。
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf

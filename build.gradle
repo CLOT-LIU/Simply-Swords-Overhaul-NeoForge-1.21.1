@@ -1,0 +1,179 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.142'
+    id 'idea'
+}
+
+tasks.named('wrapper', Wrapper).configure {
+    // 在此定义 Wrapper 参数，更新 gradle-wrapper.properties 时无需重复设置。
+    // 将此项改为 Wrapper.DistributionType.ALL 会下载完整的 Gradle 源码，
+    // 以便在 Gradle 类和方法上悬停时查看文档，但会增加 Gradle 文件体积。
+    // 如果切换为 ALL，请随后运行两次 Gradle wrapper 任务。
+    // 可检查 gradle/wrapper/gradle-wrapper.properties，确认 distributionUrl 是否已指向 `-all`。
+    distributionType = Wrapper.DistributionType.BIN
+}
+
+version = mod_version
+group = mod_group_id
+
+sourceSets.main.resources {
+    // 从最终输出中排除仅用于开发的资源。
+    exclude("**/*.bbmodel") // BlockBench 项目文件
+}
+
+repositories {
+    // CurseMaven：用于获取 SimplySwords 本体的 NeoForge 生产 jar（编译依赖）。
+    maven {
+        url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
+}
+
+base {
+    archivesName = mod_id
+}
+
+// Minecraft 1.21.1 面向用户使用 Java 21，因此 Mod 应以 Java 21 为目标版本。
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+neoForge {
+    // 指定要使用的 NeoForge 版本。
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+
+    // 此行是可选的。Access Transformer 会自动检测。
+    // Access Transformer 配置示例（可选）：
+    // accessTransformers = project.files('src/main/resources/META-INF/accesstransformer.cfg')
+
+    // 默认运行配置。
+    // 可根据需要调整、删除或复制这些配置。
+    runs {
+        client {
+            client()
+            // 要加载 GameTest 的命名空间列表，以逗号分隔；留空表示加载全部命名空间。
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+        // 此运行配置会启动 GameTestServer，运行所有已注册的 GameTest，然后退出。
+        // 默认情况下，如果没有提供 GameTest，服务器会崩溃。
+        // 其他运行配置默认也会通过 /test 命令启用 GameTest 系统。
+        gameTestServer {
+            type = "gameTestServer"
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
+        data {
+            data()
+            // 覆盖上方 configureEach 设置的工作目录示例；需要使用时取消注释。
+            // gameDirectory = project.file('run-data')
+
+            // 指定数据生成使用的 mod ID、生成资源的输出位置，以及查找现有资源的位置。
+            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        // 应用于上面的所有运行配置。
+        configureEach {
+            // userdev 环境推荐的日志数据。
+            // 可根据需要以逗号分隔添加或删除标记。
+            // "SCAN"：扫描 Mod。
+            // "REGISTRIES"：触发注册表事件。
+            // "REGISTRYDUMP"：获取所有注册表的内容。
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+            // 控制台推荐的日志级别。
+            // 可在此设置不同的日志级别。
+            // 详见：https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        // 定义 Mod 与源码之间的绑定关系。
+        // 用于告诉游戏哪些源码属于哪个 Mod。
+        // 多 Mod 项目应为每个 Mod 分别定义一项。
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+// 设置名为 'localRuntime' 的依赖配置。
+// 应使用此配置代替 'runtimeOnly' 来声明
+// 仅用于运行时测试、但属于
+// “可选”的依赖，这样依赖此 Mod 的项目不会自动拉取它。
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    // SimplySwords 本体 NeoForge 1.70.2（MC 1.21.1，生产 jar / Mojmap）。
+    // 仅编译与开发运行使用，不打包进产物；玩家需自行安装本体。
+    implementation "curse.maven:simply-swords-659887:8746001"
+
+    // Architectury API（SimplySwords 的注册表类型 RegistrySupplier 在编译期需要），
+    // 仅编译用，不打包；运行时由 SimplySwords 的依赖保证存在。
+    compileOnly "curse.maven:architectury-api-419699:5137938"
+}
+
+// 此代码块会将指定资源目标中声明的所有替换属性展开。
+// 缺少属性会导致错误。属性使用 ${} Groovy 语法展开。
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+// 将 "generateModMetadata" 的输出目录作为构建输入。
+// 通过 Gradle 或 IDE 构建时都适用。
+sourceSets.main.resources.srcDir generateModMetadata
+
+// 为避免手动运行 "generateModMetadata"，让它在每次项目重新加载时执行。
+neoForge.ideSyncTask generateModMetadata
+
+// 使用 maven-publish 插件进行发布的配置示例。
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Java 编译使用 UTF-8 字符集。
+}
+
+// IDEA 不再自动下载依赖的源码和 Javadoc JAR，因此需要显式启用此行为。
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.jrdemiurge.simplyswordsoverhaul.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "MixinEmberlashSword",
+    "MixinHelperMethods",
+    "MixinLivingEntity",
+    "MixinMoltenEdgeSword",
+    "MixinShadowstingSword",
+    "MixinSimplySwordsAPI",
+    "MixinSoulPyreSword",
+    "MixinSoulrenderSword",
+    "MixinStarsEdgeSword",
+    "MixinStormsEdgeSword",
+    "MixinWatcherSword",
+    "MixinWhisperwindSword"
+  ]
+}

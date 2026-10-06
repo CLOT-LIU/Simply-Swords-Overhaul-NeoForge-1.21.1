@@ -1,0 +1,106 @@
+# 这是一个 neoforge.mods.toml 示例文件，用于描述 Mod 的加载信息。
+# 文件包含若干必填字段（#mandatory）以及许多可选字段（#optional）。
+# 整体格式遵循 TOML 0.5.0 标准。
+# 注意：文件中包含一些 TOML 列表结构。
+# TOML 格式的详细说明：https://github.com/toml-lang/toml
+
+# 要加载的 Mod Loader 类型；对于普通 FML @Mod Mod，应使用 javafml。
+modLoader="javafml" #mandatory
+
+# 与 Mod Loader 版本匹配的版本范围；对于普通 FML @Mod Mod，这里匹配 FML 版本。
+loaderVersion="${loader_version_range}" #mandatory
+
+# Mod 使用的许可证。这是必填元数据，有助于说明 Mod 的再分发权限。
+# 可在 https://choosealicense.com/ 查看可选许可证。“保留所有权利”是默认的版权状态。
+license="${mod_license}"
+
+# 用于反馈问题的地址。
+#issueTrackerURL="https://change.me.to.your.issue.tracker.example.invalid/" #optional
+
+# Mod 列表；允许的 Mod 数量由 Mod Loader 决定。
+[[mods]] #mandatory
+
+# Mod ID。
+modId="${mod_id}" #mandatory
+
+# Mod 版本号。
+version="${mod_version}" #mandatory
+
+# Mod 在界面中显示的名称。
+displayName="简单之剑：全面改造" #mandatory
+
+# Mod 更新检查器查询更新信息的 JSON 地址。详见 https://docs.neoforged.net/docs/misc/updatechecker/。
+#updateJSONURL="https://change.me.example.invalid/updates.json" #optional
+
+# Mod 主页地址，会显示在 Mod 界面中。
+#displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional
+
+# Mod JAR 根目录中用于界面显示的 Logo 文件名。
+#logoFile="examplemod.png" #optional
+
+# Mod 界面中显示的致谢文本。
+#credits="" #optional
+
+# Mod 作者，会显示在 Mod 界面中。
+authors="jrdemiurge"
+
+# Mod 描述文本（多行，必填）。
+description='''
+对 Simply Swords（简单之剑）本体 9 把独特武器的全面改造：重制武器特效、右键技能、减益与治疗机制，所有数值均可在配置文件中调整。
+'''
+
+# [[mixins]] 用于声明需要加载的 Mixin 配置。
+[[mixins]]
+config="simply_swords_overhaul.mixins.json"
+
+# [[accessTransformers]] 用于声明 Access Transformer 文件的位置。
+# 如果省略此配置，将尝试从 META-INF/accesstransformer.cfg 加载备用文件。
+#[[accessTransformers]]
+#file="META-INF/accesstransformer.cfg"
+
+# Coremod 配置文件路径不可配置，始终从 META-INF/coremods.json 加载。
+
+# 依赖项；使用句点为特定 mod ID 声明依赖。依赖项为可选配置。
+[[dependencies.${mod_id}]] #optional
+    # 依赖项的 Mod ID。
+    modId="neoforge" #mandatory
+
+    # 依赖类型可以是 required、optional、incompatible 或 discouraged（不区分大小写）。
+    # required 表示必须存在；optional 表示可以不存在。
+    # incompatible 表示存在该 Mod 时禁止加载；discouraged 表示存在该 Mod 时显示警告。
+    type="required" #mandatory
+
+    # 可选字段，用于说明为什么需要该依赖，或为什么该依赖不兼容。
+    # reason="..."
+    # 依赖项的版本范围。
+    versionRange="[${neo_version},)" #mandatory
+
+    # 与依赖项之间的加载顺序关系。
+    # BEFORE 表示本 Mod 在依赖项之前加载。
+    # AFTER 表示本 Mod 在依赖项之后加载。
+    ordering="NONE"
+
+    # 该依赖适用的逻辑侧：BOTH、CLIENT 或 SERVER。
+    side="BOTH"
+
+# 另一个依赖项。
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    # 此版本范围声明当前 Minecraft 版本为最低版本，不包含下一个主版本。
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="simplyswords"
+    type="required"
+    versionRange="[1.70.2,)"
+    ordering="AFTER"
+    side="BOTH"
+
+# Features 是用于声明运行环境要求的特定属性。
+# 以下示例声明 Mod 要求 OpenGL 版本至少为 3.2。
+# Features 区分逻辑侧；例如，声明 OpenGL 要求不会阻止 Mod 在服务端加载。
+#[features.${mod_id}]
+#openGLVersion="[3.2,)"
