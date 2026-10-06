@@ -1,4 +1,4 @@
-# 简单之剑：全面改造（Simply Swords Overhaul）
+# 简易刀剑：全面改造（Simply Swords Overhaul）
 
 对 [Simply Swords](https://www.curseforge.com/minecraft/mc-mods/simply-swords) 本体中 9 把独特武器的全面改造模组。
 

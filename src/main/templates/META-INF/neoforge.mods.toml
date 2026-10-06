@@ -27,7 +27,7 @@ modId="${mod_id}" #mandatory
 version="${mod_version}" #mandatory
 
 # Mod 在界面中显示的名称。
-displayName="简单之剑：全面改造" #mandatory
+displayName="简易刀剑：全面改造" #mandatory
 
 # Mod 更新检查器查询更新信息的 JSON 地址。详见 https://docs.neoforged.net/docs/misc/updatechecker/。
 #updateJSONURL="https://change.me.example.invalid/updates.json" #optional
@@ -46,7 +46,7 @@ authors="jrdemiurge"
 
 # Mod 描述文本（多行，必填）。
 description='''
-对 Simply Swords（简单之剑）本体 9 把独特武器的全面改造：重制武器特效、右键技能、减益与治疗机制，所有数值均可在配置文件中调整。
+对 Simply Swords（简易刀剑）本体 9 把独特武器的全面改造：重制武器特效、右键技能、减益与治疗机制，所有数值均可在配置文件中调整。
 '''
 
 # [[mixins]] 用于声明需要加载的 Mixin 配置。
